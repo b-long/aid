@@ -1,0 +1,30 @@
+# This image (built via Dockerfile.prefect) is used for the Prefect backend.
+FROM prefecthq/prefect:1.3.1-python3.10 as python-base
+
+RUN apt-get update && apt-get install -y curl
+
+# RUN curl -sL https://install.python-poetry.org | python - -y
+RUN pip install poetry
+
+FROM python-base as builder-base
+
+COPY pyproject.toml poetry.lock /aid/
+
+ENV APP_HOME /aid/
+WORKDIR $APP_HOME
+
+RUN poetry config virtualenvs.create true
+RUN poetry config virtualenvs.in-project true
+RUN poetry install --only main --no-root
+
+FROM builder-base as final-stage
+COPY README.md aid/ /aid/
+RUN poetry install --only main
+
+RUN ls -la /
+RUN ls -la /aid/
+
+# Setup env, assuming repos are mounted correctly at runtime
+ENV PYTHONPATH="$PYTHONPATH:/aid/.venv/"
+# put prefect into the path - should not be needed??
+# ENV PATH="$PATH:/aid"

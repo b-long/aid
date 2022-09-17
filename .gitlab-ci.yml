@@ -1,0 +1,58 @@
+stages:
+  - test
+  - static-analysis
+
+install-dependencies:
+  timeout: 30m
+  stage: test
+  image: "python:3.10.6-bullseye"
+  variables:
+    POETRY_VERSION: "1.2.0"
+
+  # The following 'before_script' combined with the 'cache:' directive later are based on work at CERN.
+  # In addition, some team discussion and reading Gitlab documentation and issues (for the Gitlab 
+  # product itself) have inspired this design.
+  #
+  # References:
+  # - https://gitlab.cern.ch/lhcb-core/LHCbNightlyConf/-/blob/b6a2a7a3f2c75d32dcaa944c299c08d7cc22bb8d/.gitlab-ci.yml#L25-33
+  # - https://gitlab.com/gitlab-org/gitlab/-/issues/18986
+  before_script:
+    # Install gcc g++ for native toolchain
+    # Install curl for Poetry
+    # Install git for 'git clone' step
+    - apt-get update && apt-get install -y gcc g++ curl git
+    # Set conditions for static analysis and run static analysis first to save time.
+    - if [ ! -e $HOME/.poetry/bin/poetry ] ; then
+    # Poetry is not installed (note: $HOME tells get-poetry.py were to install)
+    -   curl -sSL https://install.python-poetry.org | python
+    - fi
+    - export PATH="/root/.local/bin:$PATH"
+    - poetry config experimental.new-installer true
+
+  script:
+    - poetry install
+  cache:
+    key:
+      files:
+        - poetry.lock
+        - poetry.toml
+    paths:
+      - .venv
+
+black-and-pylint:
+  extends: install-dependencies
+  timeout: 30m
+  stage: static-analysis
+  script:
+    # Verify all code has been formatted according to 'black'
+    - poetry --version
+    - time poetry run pylint --disable=C0114,C0116,C0415, aid/ tests/
+    - poetry run black --check .
+  needs: ["install-dependencies"]
+
+pytest-group-1:
+  timeout: 1h 5m
+  extends: install-dependencies
+  script:
+    - poetry run pytest tests/
+  needs: ["install-dependencies"]
