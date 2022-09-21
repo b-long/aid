@@ -1,30 +1,26 @@
-# This image (built via Dockerfile.prefect) is used for the Prefect backend.
-FROM prefecthq/prefect:1.3.1-python3.10 as python-base
+FROM python:3.10-slim as base
 
-RUN apt-get update && apt-get install -y curl
+# tell prefect where to find our package code
+ENV PYTHONPATH=/workdir/
 
-# RUN curl -sL https://install.python-poetry.org | python - -y
+# needed to build psutil on arm64
+RUN apt-get update && apt-get install -y gcc python3-dev git gcc g++ libblas-dev
+# RUN apt-get update && apt-get install -y --no-install-recommends gcc python3-dev git gcc
+
+# python dependencies
+RUN pip install --upgrade pip
 RUN pip install poetry
 
-FROM python-base as builder-base
+FROM base
+RUN poetry config virtualenvs.create false
+RUN poetry config virtualenvs.prefer-active-python true
+RUN poetry config installer.no-binary :all:
 
-COPY pyproject.toml poetry.lock /aid/
+# RUN ls -la /
+# RUN mkdir /workdir/
+# RUN ls -la /workdir/
+WORKDIR /workdir/
 
-ENV APP_HOME /aid/
-WORKDIR $APP_HOME
+COPY . /workdir/
 
-RUN poetry config virtualenvs.create true
-RUN poetry config virtualenvs.in-project true
 RUN poetry install --only main --no-root
-
-FROM builder-base as final-stage
-COPY README.md aid/ /aid/
-RUN poetry install --only main
-
-RUN ls -la /
-RUN ls -la /aid/
-
-# Setup env, assuming repos are mounted correctly at runtime
-ENV PYTHONPATH="$PYTHONPATH:/aid/.venv/"
-# put prefect into the path - should not be needed??
-# ENV PATH="$PATH:/aid"
