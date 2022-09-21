@@ -1126,7 +1126,7 @@ heapdict = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "ec9c5a034c8cb1bdd2361887015e486c38e609512ef2d53de8edde3536643a70"
+content-hash = "96d21f4b641510c9c619a2bf876967f7ece0bdfb185a69a7ee182a679f449fe8"
 
 [metadata.files]
 aiohttp = [
