@@ -4,23 +4,29 @@ FROM python:3.10-slim as base
 ENV PYTHONPATH=/workdir/
 
 # needed to build psutil on arm64
-RUN apt-get update && apt-get install -y gcc python3-dev git gcc g++ libblas-dev
+RUN apt-get update && apt-get install -y gcc python3-dev git gcc g++ libblas-dev python3-venv
 # RUN apt-get update && apt-get install -y --no-install-recommends gcc python3-dev git gcc
 
 # python dependencies
 RUN pip install --upgrade pip
 RUN pip install poetry
 
-FROM base
+FROM base as step2
 RUN poetry config virtualenvs.create false
 RUN poetry config virtualenvs.prefer-active-python true
-RUN poetry config installer.no-binary :all:
+# RUN poetry config installer.no-binary :all:
 
 # RUN ls -la /
 # RUN mkdir /workdir/
 # RUN ls -la /workdir/
 WORKDIR /workdir/
-
 COPY . /workdir/
-
+# Skip installing this project (aid)
+# Only install it's dependencies
 RUN poetry install --only main --no-root
+
+FROM step2
+WORKDIR /workdir/
+COPY . /workdir/
+RUN poetry install --only main
+ENV PYTHONPATH="$PYTHONPATH:/workdir/.venv/"
