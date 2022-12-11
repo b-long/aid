@@ -2,7 +2,7 @@ import prefect
 from prefect import Flow, task
 from prefect.engine.results import LocalResult
 
-from aid.env_vars import PREFECT_PROJECT_NAME, FOO
+from aid.env_vars import FOO, PREFECT_PROJECT_NAME
 from aid.etl.arbitrary_pandas import do_pandas
 from aid.prefect.docker_utils import create_docker_runconfig, get_basic_docker_storage
 
